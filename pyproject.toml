@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bike-notifications"
+version = "0.0.1"
+dependencies = [
+  "requests",
+  "python-dotenv",
+  "playwright",
+]
+requires-python = ">=3.11"
+authors = [
+  {name = "Paul Martin"}
+]
+maintainers = [
+  {name = "Paul Martin"}
+]
+description = "A Python project to monitor cycle storage and send notifications via Telegram."
+license = "MIT"
+license-files = ["LICENSE"]
+
+[project.urls]
+Repository = "https://github.com/me/bike-notifications.git"
+"Bug Tracker" = "https://github.com/me/bike-notifications/issues"
+
+[project.scripts]
+bike-notifications = "bike_notifications:main"
