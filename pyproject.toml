@@ -26,4 +26,7 @@ Repository = "https://github.com/me/bike-notifications.git"
 "Bug Tracker" = "https://github.com/me/bike-notifications/issues"
 
 [project.scripts]
-bike-notifications = "bike_notifications:main"
+bike-notifications = "bike_notifications.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bike_notifications"]

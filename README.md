@@ -15,13 +15,15 @@ Lightweight monitor that scrapes a CycleHoop results map and sends a Telegram me
 - Recommended: virtual environment (venv)
 
 ## Files of interest
-- `main.py` — main monitor loop and scraper
-- `logger.py` — logging configuration and setup
+- `main.py` — main monitor loop and scraper (package: `bike_notifications`)
+- `logger.py` — logging configuration and setup (package: `bike_notifications`)
 - `cycle_storages.json` — persisted snapshot (created at runtime)
 - `.env` — environment variables (not checked into VCS)
 - `logs/` — log directory (created at runtime)
   - `success.log` — info and debug messages
   - `error.log` — warnings and errors
+- `pyproject.toml` — project metadata & dependencies
+- `Dockerfile`, `docker-compose.yml` — container configuration
 
 ## Environment
 Create a `.env` file in the project root with the following variables:
@@ -40,8 +42,13 @@ macOS / Linux:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+# If you use pip:
+pip install playwright python-dotenv requests
 python -m playwright install
+# If you use uv (recommended with pyproject.toml):
+pip install uv
+uv sync        # installs pinned deps from pyproject/uv.lock
+uv run python -m playwright install
 ```
 
 If using Poetry:
@@ -50,25 +57,18 @@ poetry install
 poetry run python -m playwright install
 ```
 
-If you don't have a requirements file, install required packages:
-```bash
-pip install playwright python-dotenv requests
-python -m playwright install
-```
-
 ## Usage
 
-Run the monitor:
+Run the monitor locally:
 ```bash
-python main.py
+# pip-installed deps
+python -m bike_notifications.main
+
+# or with uv (uses environment/pyproject)
+uv run python -m bike_notifications.main
 ```
 
-Or with Poetry:
-```bash
-poetry run python main.py
-```
-
-The script runs indefinitely and checks for new cycle storages every 5 minutes by default. Change `CHECK_INTERVAL_SECONDS` in `main.py` to adjust frequency.
+The script runs indefinitely and checks for new cycle storages every 5 minutes by default. Change `CHECK_INTERVAL_SECONDS` in `bike_notifications/main.py` to adjust frequency.
 
 ## Logging
 
@@ -84,21 +84,6 @@ Log format: `YYYY-MM-DD HH:MM:SS - LEVEL - message`
 
 Log files are automatically rotated when they exceed 5MB. Previous logs are kept as backups (`success.log.1`, `success.log.2`, etc.). Up to 3 backup files are retained per log type.
 
-### Example log entries
-
-success.log:
-```
-2026-02-08 14:32:10 - INFO - Initial snapshot saved with 12 storages
-2026-02-08 14:37:15 - INFO - Telegram notification sent successfully
-2026-02-08 14:42:20 - DEBUG - No new cycle storages found at 2026-02-08 14:42:20
-```
-
-error.log:
-```
-2026-02-08 15:10:45 - ERROR - Failed to send Telegram notification: Connection timeout
-2026-02-08 15:15:50 - ERROR - Error during check: timeout waiting for page to load
-```
-
 ## Configuration
 
 - TELEGRAM_TOKEN — Bot token from BotFather
@@ -113,19 +98,32 @@ The script stores the last-seen items in `cycle_storages.json` in the project ro
 
 ## Troubleshooting
 
-- Playwright browsers missing: run `python -m playwright install`.
+- Playwright browsers missing: run `python -m playwright install` (or `uv run python -m playwright install`).
 - No Telegram messages: verify `.env` values and check `logs/error.log` for API errors. Test manually with:
   ```bash
   curl -s -X POST "https://api.telegram.org/bot<token>/sendMessage" -d chat_id=<chat_id> -d text="test"
   ```
-- Selector returns no results: open the target URL in a browser, inspect the storage cards, and update `CYCLE_STORAGE_CARD_SELECTOR` in `main.py`.
+- Selector returns no results: open the target URL in a browser, inspect the storage cards, and update `CYCLE_STORAGE_CARD_SELECTOR` in `bike_notifications/main.py`.
 - Check `logs/success.log` for detailed runtime activity and `logs/error.log` for failures.
 
-## Docker (brief)
+## Docker
 
-Base image must include Playwright deps. Install Playwright and browsers during build:
-- Use official python image + install apt packages required by Playwright
-- Run `python -m pip install -r requirements.txt` and `python -m playwright install` in Dockerfile
+This project provides a Dockerfile and optional docker-compose to run the monitor in a container. The image installs Python deps from `pyproject.toml` (using `uv`) and Playwright browsers.
+
+Notes:
+- Do not copy your `.env` into the image; provide it at runtime with `--env-file` or compose `env_file`.
+- Mount `logs/` and `cycle_storages.json` to persist state between container restarts.
+
+Example Dockerfile (already included in repo):
+- installs Playwright system deps
+- uses `uv` to install deps from `pyproject.toml`
+- copies package `bike_notifications/` into `/app/bike_notifications`
+- runs the module: `python -m bike_notifications.main` (invoked via `uv` in the image)
+
+Build and run with docker-compose (example `docker-compose.yml` in repo):
+```bash
+docker-compose up -d --build
+```
 
 ## Contributing
 
