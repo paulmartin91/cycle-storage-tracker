@@ -99,6 +99,7 @@ async def check_once():
 
 async def main():
     error_count = 0
+    notify_telegram("✅ Bike notification script has started.")
     while True:
         try:
             await check_once()
