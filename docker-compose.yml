@@ -1,0 +1,10 @@
+services:
+  bike-notifications:
+    build: .
+    container_name: bike-notifications
+    restart: always
+    volumes:
+      - ./logs:/app/logs
+      - ./bike_notifications/cycle_storages.json:/app/bike_notifications/cycle_storages.json
+    env_file:
+      - .env

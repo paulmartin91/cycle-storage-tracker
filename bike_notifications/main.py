@@ -7,7 +7,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
-from logger import setup_logging, get_logger, add_exception_handler
+from bike_notifications.logger import setup_logging, get_logger, add_exception_handler
 
 setup_logging()
 logger = get_logger(__name__)
@@ -101,7 +101,6 @@ async def main():
     error_count = 0
     while True:
         try:
-            1/0
             await check_once()
         except Exception as e:
             logger.error(str(e))
