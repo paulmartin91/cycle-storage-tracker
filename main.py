@@ -7,24 +7,28 @@ from pathlib import Path
 from dotenv import load_dotenv
 from playwright.async_api import async_playwright
 
-from logger import setup_logging, get_logger
+from logger import setup_logging, get_logger, add_exception_handler
 
 setup_logging()
 logger = get_logger(__name__)
-
+add_exception_handler(logger)
 
 load_dotenv()
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT")
 POSTCODE = os.getenv("POSTCODE")
+MAX_ERRORS = int(os.getenv("MAX_ERRORS", 5))
 
 if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
     raise RuntimeError("Missing Telegram environment variables in .env")
 
+if not POSTCODE:
+    raise RuntimeError("Missing POSTCODE environment variable in .env")
+
 URL = f"https://cyclehoop.my.site.com/RentalsCommunity/resultsmap?postalCode={POSTCODE}"
 
 DATA_FILE = Path("cycle_storages.json")
-CHECK_INTERVAL_SECONDS = 300  # check every 5 minutes
+CHECK_INTERVAL_SECONDS = 60 * 5
 CYCLE_STORAGE_CARD_SELECTOR = '[id="inventory-filter-sidebar"]'
 
 
@@ -64,6 +68,7 @@ async def extract_cycle_storages(page):
 
 
 async def check_once():
+    """Check for new cycle storage entries."""
     previous = load_previous()
 
     async with async_playwright() as p:
@@ -93,8 +98,18 @@ async def check_once():
 
 
 async def main():
+    error_count = 0
     while True:
-        await check_once()
+        try:
+            1/0
+            await check_once()
+        except Exception as e:
+            logger.error(str(e))
+            error_count += 1
+            if error_count >= 5:
+                logger.critical("Too many errors occurred. Stopping.")
+                notify_telegram("⚠️ Bike notification script has stopped due to repeated errors.")
+                break
         await asyncio.sleep(CHECK_INTERVAL_SECONDS)
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 import logging
 from pathlib import Path
+import sys
+import asyncio
+
 
 LOGS_DIR = Path("logs")
 LOGS_DIR.mkdir(exist_ok=True)
@@ -25,7 +28,7 @@ def setup_logging():
     success_handler.addFilter(lambda record: record.levelno <= logging.INFO)
     
     error_handler = logging.FileHandler(ERROR_LOG)
-    error_handler.setLevel(logging.WARNING)
+    error_handler.setLevel(logging.ERROR)
     error_handler.setFormatter(formatter)
     
     console_handler = logging.StreamHandler()
@@ -38,7 +41,32 @@ def setup_logging():
     
     return root_logger
 
-
 def get_logger(name):
     """Get a named logger instance."""
     return logging.getLogger(name)
+
+def add_exception_handler(logger: logging.Logger):
+    """Add a handler for uncaught exceptions."""
+    def handle_exception(exc_type, exc_value, exc_traceback):
+        """Forward uncaught exceptions to the logger."""
+        # Let Ctrl+C still behave normally
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        logger.critical(
+            "Uncaught exception",
+            exc_info=(exc_type, exc_value, exc_traceback),
+        )
+
+    sys.excepthook = handle_exception
+
+
+def add_async_exception_handler(logger: logging.Logger):
+    """Add a handler for unhandled async exceptions."""
+    def handle_async_exception(loop, context):
+        """Forward unhandled async exceptions to the logger."""
+        msg = context.get("exception", context["message"])
+        logger.error("Unhandled async exception", exc_info=msg)
+
+    asyncio.get_event_loop().set_exception_handler(handle_async_exception)
