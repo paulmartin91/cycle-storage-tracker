@@ -31,6 +31,7 @@ RUN uv sync --frozen
 
 # Install Playwright browsers
 RUN uv run python -m playwright install
+RUN uv run python -m playwright install-deps
 
 # Copy application files
 COPY bike_notifications/ ./bike_notifications/
