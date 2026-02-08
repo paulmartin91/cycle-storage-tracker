@@ -30,8 +30,7 @@ COPY uv.lock* ./
 RUN uv sync --frozen
 
 # Install Playwright browsers
-RUN uv run python -m playwright install
-RUN uv run python -m playwright install-deps
+RUN uv run python -m playwright install --with-deps --only-shell chromium
 
 # Copy application files
 COPY bike_notifications/ ./bike_notifications/
