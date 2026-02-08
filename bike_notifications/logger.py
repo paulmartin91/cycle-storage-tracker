@@ -4,7 +4,7 @@ import sys
 import asyncio
 
 
-LOGS_DIR = Path("../logs")
+LOGS_DIR = Path("logs")
 LOGS_DIR.mkdir(exist_ok=True)
 
 SUCCESS_LOG = LOGS_DIR / "success.log"
